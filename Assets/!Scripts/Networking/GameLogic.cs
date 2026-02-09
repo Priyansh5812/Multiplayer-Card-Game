@@ -7,7 +7,8 @@ public class GameLogic : NetworkBehaviour
 {
     [SerializeField] CardRegistry cardRegistry;
 
-    private List<CardData> deck = new();
+    [Networked , Capacity(12)]
+    NetworkArray<NetCardData> netDeck => default;
     private List<int> P1_hand = new();
     
     [Networked, Capacity(3)]
@@ -51,8 +52,10 @@ public class GameLogic : NetworkBehaviour
         for (int i = 0; i < cardRegistry.cards.Length; i++)
         {
             CardData card = cardRegistry.cards[i];
-            deck.Add(card);
-        }       
+            NetCardData nCard = default;
+            nCard.InitializeFromCardData(i , card);
+            netDeck.Set(i, nCard);
+        }
     }
 
     private void InitializeHands()
@@ -63,24 +66,33 @@ public class GameLogic : NetworkBehaviour
         // Host Hand Init
         for (int i = 0; i < 3; i++)
         {
-            P1_hand.Add(deck[P1_DeckIndex].id);
-            deck[P1_DeckIndex].SetState(CardState.HAND);
+            P1_hand.Add(netDeck[P1_DeckIndex].deckIndex);
+            netDeck[P1_DeckIndex].SetState(CardState.HAND);
             P1_DeckIndex += 2;
             Debug.Log(P1_hand[i]);
         }
 
         for (int i = 0; i < 3; i++)
         {
-            P2_hand.Set(i, deck[P2_DeckIndex].id);
-            deck[P2_DeckIndex].SetState(CardState.HAND);
+            P2_hand.Set(i , netDeck[P2_DeckIndex].deckIndex);
+            netDeck[P2_DeckIndex].SetState(CardState.HAND);
             P2_DeckIndex += 2;
             Debug.Log(P2_hand[i]);
         }
 
     }
 
+
     public IEnumerable<int> GetHand()
     { 
         return Runner.GameMode == GameMode.Host ? P1_hand : P2_hand;
+    }
+
+    public (bool , CardData) GetCardData(int cardDeckIndex)
+    {
+        if (cardDeckIndex < 0 || cardDeckIndex >= cardRegistry.cards.Length)
+            return (false, default);
+
+        return (true, cardRegistry.cards[cardDeckIndex]);
     }
 }

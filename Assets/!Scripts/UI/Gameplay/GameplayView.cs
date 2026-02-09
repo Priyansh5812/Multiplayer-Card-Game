@@ -13,7 +13,6 @@ public class GameplayView : IMonoState
     { 
         this.viewController = viewController;
         this.data = data;
-        EventManager.OnGameLogicEstablished.AddListener(InitializeGameLogic);
         controller = new(this);
     }
 
@@ -24,7 +23,6 @@ public class GameplayView : IMonoState
     } = false;
 
     
-
     public void OnEnable(Action OnEnableCompleted = null)
     {   
         data.cgMain.alpha = 1.0f;
@@ -37,25 +35,11 @@ public class GameplayView : IMonoState
         OnStartCompleted?.Invoke();
     }
 
-    private void InitializeGameLogic(GameLogic logic)
+    public void AddCardToHand(CardView cardView)
     {
-        Debug.Log($"Game Logic Initialized at Gameplay View {logic == null}");
-        this.logic = logic;
-        EventManager.OnGameLogicEstablished.RemoveListener(InitializeGameLogic);
-        CheckHand();
-    }
-
-    private void CheckHand()
-    {
-        var hand = logic.GetHand();
-
-        string str = string.Empty;
-        foreach (var i in hand)
-        {
-            str += i.ToString() + "\n";
-        }
-
-        data.debugText?.SetText(str);
+        cardView.transform.SetParent(data.handParent);
+        cardView.transform.localScale = Vector3.one;
+        cardView.transform.localPosition = Vector3.zero;
     }
 
     public void OnDisable(Action OnDisableCompleted = null)
@@ -69,5 +53,5 @@ public class GameplayView : IMonoState
 public class GameplayViewData
 {
     public CanvasGroup cgMain;
-    public TMPro.TextMeshProUGUI debugText;   
+    public RectTransform handParent;
 }

@@ -1,3 +1,4 @@
+using Fusion;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "CardRegistry", menuName = "Scriptable Objects/CardRegistry")]
@@ -33,10 +34,26 @@ public struct CardData
     public short Power;
     public CardState cardState;
     public AbilityData CardAbility;
+}
+
+[System.Serializable]
+
+public struct NetCardData : INetworkStruct
+{
+    public int deckIndex;
+    public CardState cardState;
+
+    public void InitializeFromCardData(int deckIndex , CardData data)
+    { 
+        this.deckIndex = deckIndex;
+        cardState = data.cardState;
+    }
 
     public void SetState(CardState state) => cardState = state;
-    
 }
+
+
+
 [System.Serializable]
 public struct AbilityData
 {

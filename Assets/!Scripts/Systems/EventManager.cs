@@ -10,6 +10,16 @@ public static class EventManager
         get; private set;
     } = new();
 
+    public static FuncEvent<CardData, CardView> GetCard
+    {
+        get; private set;
+    } = new();
+
+
+    public static ActionEvent OnStartGame
+    {
+        get; private set;
+    } = new();
 }
 
 public class ActionEvent
