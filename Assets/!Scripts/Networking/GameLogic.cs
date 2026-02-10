@@ -1,7 +1,10 @@
 using Fusion;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using CardGame;
+using System.Threading.Tasks;
 
 public class GameLogic : NetworkBehaviour
 {
@@ -9,28 +12,16 @@ public class GameLogic : NetworkBehaviour
 
     [Networked , Capacity(12)]
     NetworkArray<NetCardData> netDeck => default;
-    private List<int> P1_hand = new();
-    
-    [Networked, Capacity(3)]
-    NetworkArray<int> P2_hand => default;
-
-    [Networked , Capacity(12)]
-    NetworkArray<int> P1_Play => default;
-    [Networked , Capacity(12)]
-    NetworkArray<int> P2_Play => default;
 
     [Networked]
-    int P1_DeckIndex
-    {
-        get; set;
-    } = 0;
-   
+    TickTimer roundTimer
+    { get; set; }
+
     [Networked]
-    int P2_DeckIndex
+    int roundNo
     {
         get; set;
     } = 1;
-
 
     public override void Spawned()
     {
@@ -38,11 +29,84 @@ public class GameLogic : NetworkBehaviour
         EventManager.OnGameLogicEstablished?.Invoke(this);
     }
 
+    private void OnEnable()
+    {
+        InitListeners();    
+    }
+
+    private void InitListeners()
+    {
+        EventManager.OnRoundTimerEnded.AddListener(RoundTimerEnded);
+    }   
+
     public void InitializeCardLogic()
     {
         InitializeDeck();
-        InitializeHands();
     }
+
+    private void InitiateRoundTimer()
+    {
+        roundTimer = TickTimer.CreateFromSeconds(Runner, 30.0f);
+        RPC_StartRoundTimerCallbackRoutine();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer, InvokeLocal = true, TickAligned = true)]
+    private void RPC_StartRoundTimerCallbackRoutine()
+    { 
+        EventManager.OnRoundUpdated.Invoke(roundNo);
+        StartCoroutine(RoundTimerCallbackUpdation());
+    }
+
+    IEnumerator RoundTimerCallbackUpdation()
+    {
+        EventManager.OnRoundTimerStarted.Invoke();
+        Debug.Log("Round Timer Started");
+        while (!roundTimer.Expired(Runner))
+        {
+            EventManager.OnRoundTimerUpdated.Invoke(roundTimer.RemainingTime(Runner).Value);
+            yield return null;
+        }
+
+        EventManager.OnRoundTimerUpdated.Invoke(0);
+        Debug.Log("Round Timer Ended");
+        EventManager.OnRoundTimerEnded.Invoke();
+    }
+
+    private void RoundTimerEnded()
+    {
+        Debug.Log("Round Ended");
+
+        if (Runner.GameMode == GameMode.Host)
+            Server_RoundTimerEnded();
+        else
+            Client_RoundTimerEnded();
+    }
+
+    private async void Server_RoundTimerEnded()
+    {
+        Client_RoundTimerEnded(); // Host is also a Client
+
+        if (roundNo > Constants.MaxRounds)
+        {
+            // TODO: End Game
+            Debug.Log("Game Ended");
+        }
+        else
+        {
+            Debug.Log("Delay Initiated");
+            await Task.Delay(1000);
+            Debug.Log("Delay Ended");
+            roundNo++;
+            InitiateRoundTimer();
+        }
+    }
+
+    private void Client_RoundTimerEnded()
+    { 
+        
+    }
+
+
 
     private void InitializeDeck()
     {
@@ -58,34 +122,26 @@ public class GameLogic : NetworkBehaviour
         }
     }
 
-    private void InitializeHands()
+    public (bool , NetCardData) GetNetCardDataAt(int index)
     {
-        if (!Runner.IsServer)
-            return;
+        if (index < 0 || index >= netDeck.Length)
+            return (false, default);
 
-        // Host Hand Init
-        for (int i = 0; i < 3; i++)
-        {
-            P1_hand.Add(netDeck[P1_DeckIndex].deckIndex);
-            netDeck[P1_DeckIndex].SetState(CardState.HAND);
-            P1_DeckIndex += 2;
-            Debug.Log(P1_hand[i]);
-        }
-
-        for (int i = 0; i < 3; i++)
-        {
-            P2_hand.Set(i , netDeck[P2_DeckIndex].deckIndex);
-            netDeck[P2_DeckIndex].SetState(CardState.HAND);
-            P2_DeckIndex += 2;
-            Debug.Log(P2_hand[i]);
-        }
-
+        return (true, netDeck[index]);
     }
 
+    public bool SetCardState(int index , CardState state)
+    {
+        if (index < 0 || index >= netDeck.Length)
+            return false;
+
+        netDeck[index].SetState(state);
+        return true;
+    }
 
     public IEnumerable<int> GetHand()
     { 
-        return Runner.GameMode == GameMode.Host ? P1_hand : P2_hand;
+        return Runner.GameMode == GameMode.Host ? null : null;
     }
 
     public (bool , CardData) GetCardData(int cardDeckIndex)
@@ -94,5 +150,29 @@ public class GameLogic : NetworkBehaviour
             return (false, default);
 
         return (true, cardRegistry.cards[cardDeckIndex]);
+    }
+
+
+    [Rpc(RpcSources.StateAuthority , RpcTargets.All , InvokeLocal = true, TickAligned = true)]
+    public void RPC_InitiateGameStart()
+    {
+        Debug.Log("Game Started");
+        roundNo = 1;
+        EventManager.OnStartGame.Invoke();
+        InitiateRoundTimer();
+    }
+
+    private void DeInitListeners()
+    {
+        EventManager.OnRoundTimerEnded.RemoveListener(RoundTimerEnded);
+    }
+
+
+
+
+
+    private void OnDisable()
+    {
+        DeInitListeners();
     }
 }

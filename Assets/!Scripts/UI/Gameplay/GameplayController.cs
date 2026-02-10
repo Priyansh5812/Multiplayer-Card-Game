@@ -1,25 +1,32 @@
+using Fusion;
+using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 public class GameplayController
 {
     private GameplayView view;
-    private GameLogic logic;
+    private PlayerLogic logic;
+    private StringBuilder timerString;
+    private StringBuilder roundText;
     public GameplayController(GameplayView view) 
     {
         this.view = view;
-        EventManager.OnGameLogicEstablished.AddListener(InitializeGameLogic);
+        timerString = new StringBuilder();
+        roundText = new StringBuilder();
+        EventManager.OnPlayerLogicEstablished.AddListener(InitializePlayerLogic);
     }
    
 
-    private void InitializeGameLogic(GameLogic logic)
+    private void InitializePlayerLogic(PlayerLogic logic)
     {
-        Debug.Log($"Game Logic Initialized at Gameplay View {logic == null}");
+        Debug.Log($"Player Logic Initialized at Gameplay View {logic == null} , {logic.gameObject.name}");
         this.logic = logic;
-        InitializeHand();
     }
 
-    private void InitializeHand()
+
+    public void UpdateHand()
     {
         IEnumerable<int> hand = logic.GetHand();
         foreach (var i in hand)
@@ -33,6 +40,20 @@ public class GameplayController
 
             AddCardToHand(res.Item2);
         }
+    }
+
+    public void UpdateRoundTimerDisplay(float remainingTime)
+    { 
+        timerString.Clear();
+        timerString.Append(Mathf.Ceil(remainingTime));
+        view.UpdateRoundTimerText(timerString);
+    }
+
+    public void UpdateRoundStat(int roundNo)
+    {
+        roundText.Clear();
+        roundText.Append($"Round - {roundNo}");
+        view.UpdateRoundStat(roundText);
     }
 
     private void AddCardToHand(CardData data)

@@ -1,18 +1,21 @@
 using Fusion;
 using Fusion.Sockets;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 public class NetworkCallbackDispatcher : MonoBehaviour, INetworkRunnerCallbacks
 {
     [SerializeField] GameLogic gameLogicPrefab;
+    [SerializeField] PlayerLogic playerLogicPrefab;
+
     private NetworkRunner _runner;
-    private Dictionary<int, PlayerRef> joinedPlayers;
+    private Dictionary<int, PlayerDataAbs> joinedPlayers;
     private event Action OnSuccessConnected;
     private event Action<string> OnDisconnected;
     private GameLogic gameLogic;
-    
+    private bool isGameStartPollingInitiated = false;
     public void StartGameAsHost()
     {
         StartGame(GameMode.Host);
@@ -113,13 +116,28 @@ public class NetworkCallbackDispatcher : MonoBehaviour, INetworkRunnerCallbacks
         if (runner.IsServer)
         {
             joinedPlayers ??= new();
-            joinedPlayers.TryAdd(player.PlayerId, player);
+
+
             if (gameLogic == null)
             { 
                 gameLogic = runner.Spawn(gameLogicPrefab, null, null, null, (netRunner,netObj) => 
                 {
                     netObj.GetComponent<GameLogic>().InitializeCardLogic();
                 });
+            }
+
+
+            var playerLogicInstance = runner.Spawn(playerLogicPrefab, null, null, player, (netRunner, netObj) =>
+            {
+                netObj.GetComponent<PlayerLogic>().Initialize(gameLogic , joinedPlayers.Count);
+            });
+            
+
+            joinedPlayers.TryAdd(player.PlayerId, new PlayerDataAbs(player , playerLogicInstance));
+            if (!isGameStartPollingInitiated)
+            {
+                isGameStartPollingInitiated = true;
+                StartCoroutine(GameStartRoutine());
             }
         }
     }
@@ -130,8 +148,22 @@ public class NetworkCallbackDispatcher : MonoBehaviour, INetworkRunnerCallbacks
         if (runner.IsServer)
         {
             if (joinedPlayers.ContainsKey(player.PlayerId))
+            {
+                runner.Despawn(joinedPlayers[player.PlayerId].playerLogic.GetComponent<NetworkObject>());
                 joinedPlayers.Remove(player.PlayerId);
+            }
         }
+    }
+
+
+    IEnumerator GameStartRoutine()
+    {
+        while (joinedPlayers.Count < 2)
+        { 
+            yield return null;
+        }
+        EventManager.InitializeHands?.Invoke(joinedPlayers.Count);
+        gameLogic.RPC_InitiateGameStart();
     }
 
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress)
@@ -187,4 +219,14 @@ public class NetworkCallbackDispatcher : MonoBehaviour, INetworkRunnerCallbacks
             
         }
     }
+}
+
+public class PlayerDataAbs
+{   public PlayerDataAbs(PlayerRef playerRef, PlayerLogic playerLogic)
+    { 
+        this.playerRef = playerRef;
+        this.playerLogic = playerLogic;
+    }
+    public PlayerRef playerRef;
+    public PlayerLogic playerLogic;
 }

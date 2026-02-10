@@ -1,3 +1,4 @@
+using Fusion;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,6 +11,11 @@ public static class EventManager
         get; private set;
     } = new();
 
+    public static ActionEvent<PlayerLogic> OnPlayerLogicEstablished
+    {
+        get; private set;
+    } = new();
+
     public static FuncEvent<CardData, CardView> GetCard
     {
         get; private set;
@@ -17,6 +23,36 @@ public static class EventManager
 
 
     public static ActionEvent OnStartGame
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent OnRoundTimerStarted
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<int> OnRoundUpdated
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<float> OnRoundTimerUpdated
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent OnRoundTimerEnded
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<int> OnDealCard
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<int> InitializeHands
     {
         get; private set;
     } = new();

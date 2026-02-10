@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Fusion;
-using TMPro;
 public class ViewStateController : MonoBehaviour
 {
     private readonly Dictionary<Type, IMonoState> stateReg = new();
