@@ -49,7 +49,7 @@ public struct NetCardData : INetworkStruct
         cardState = data.cardState;
     }
 
-    public void SetState(CardState state) => cardState = state;
+    public void SetState(CardState state) => this.cardState = state;
 }
 
 

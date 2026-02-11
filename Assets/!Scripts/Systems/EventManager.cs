@@ -20,9 +20,34 @@ public static class EventManager
     {
         get; private set;
     } = new();
+    public static ActionEvent<CardView> SetCard
+    {
+        get; private set;
+    } = new();
 
 
     public static ActionEvent OnStartGame
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent UpdateHandsAndPlayView
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<CardView> SetCardSelection
+    {
+        get; private set;
+    } = new();
+
+
+    public static ActionEvent<bool> SetCardPlayUI
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<bool> UpdateCardSelectionView
     {
         get; private set;
     } = new();
@@ -47,7 +72,17 @@ public static class EventManager
         get; private set;
     } = new();
 
-    public static ActionEvent<int> OnDealCard
+    public static ActionEvent OnSelectedCardPlayOrHand
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<int> OnSelectCard
+    {
+        get; private set;
+    } = new();
+
+    public static ActionEvent<int> OnCardSelected
     {
         get; private set;
     } = new();

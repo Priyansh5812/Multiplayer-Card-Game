@@ -23,6 +23,13 @@ public class GameLogic : NetworkBehaviour
         get; set;
     } = 1;
 
+    [Networked]
+    int maxCost
+    {
+        get; set;
+    } = 1;
+
+
     public override void Spawned()
     {
         base.Spawned();
@@ -135,7 +142,11 @@ public class GameLogic : NetworkBehaviour
         if (index < 0 || index >= netDeck.Length)
             return false;
 
-        netDeck[index].SetState(state);
+        Debug.Log("Req Card State : "+state.ToString());
+        var deckData = netDeck[index];
+        deckData.SetState(state);
+        netDeck.Set(index , deckData);
+        Debug.Log(netDeck[index].cardState);
         return true;
     }
 
@@ -158,6 +169,7 @@ public class GameLogic : NetworkBehaviour
     {
         Debug.Log("Game Started");
         roundNo = 1;
+        //EventManager.UpdateHandsAndPlayView.Invoke();
         EventManager.OnStartGame.Invoke();
         InitiateRoundTimer();
     }

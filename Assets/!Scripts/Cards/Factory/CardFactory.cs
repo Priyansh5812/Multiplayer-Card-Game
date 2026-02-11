@@ -15,6 +15,7 @@ public class CardFactory : MonoBehaviour
     private void InitListeners()
     {
         EventManager.GetCard.AddListener(GetCard);
+        EventManager.SetCard.AddListener(SetCard);
     }
 
     private async void AllocateCardCache()
@@ -41,7 +42,7 @@ public class CardFactory : MonoBehaviour
             view = GetFreshCardView();
 
         view.gameObject.SetActive(true);
-        view.Initialize(data, this);
+        view.Initialize(data);
 
         if (inactiveViews.Count <= maxSize / 4)
             AllocateCardCache();
@@ -51,9 +52,20 @@ public class CardFactory : MonoBehaviour
 
     private CardView GetFreshCardView() => Instantiate(cardViewPrefab, Vector3.zero, Quaternion.identity, this.transform);
 
+    private void SetCard(CardView view)
+    { 
+        if(view == null)
+            return;
+
+        view.transform.SetParent(this.transform);
+        view.gameObject.SetActive(false);
+        inactiveViews.Enqueue(view);
+    }
+
     private void DeInitListeners()
     {
         EventManager.GetCard.RemoveListener(GetCard);
+        EventManager.SetCard.RemoveListener(SetCard);
     }
 
     private void OnDisable()

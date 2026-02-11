@@ -12,6 +12,7 @@ public class ViewStateController : MonoBehaviour
     private NetworkCallbackDispatcher netInstance;
     private void Start()
     {
+        Application.targetFrameRate = -1;
         ConstructMenuStates();
         InitiateStateChange(typeof(MenuView));
     }
